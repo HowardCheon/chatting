@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ref, push, onValue, update, off } from 'firebase/database';
+import { ref, push, onValue, update, off, remove } from 'firebase/database';
 import type { Database } from 'firebase/database';
 import type { LadderGame } from '@/types';
 
@@ -148,6 +148,15 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
     });
   };
 
+  const deleteGame = async (gameId: string) => {
+    if (!confirm('정말 이 게임을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    const gameRef = ref(db, `ladderGames/${gameId}`);
+    await remove(gameRef);
+  };
+
   const isGameReady = (game: LadderGame) => {
     const selections = game.selections || {};
     return Object.keys(selections).length === game.participantCount;
@@ -231,8 +240,18 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
 
           return (
             <div key={game.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="text-sm text-gray-600 mb-3">
-                {game.creatorNickname}님의 게임
+              <div className="flex justify-between items-center mb-3">
+                <div className="text-sm text-gray-600">
+                  {game.creatorNickname}님의 게임
+                </div>
+                {game.createdBy === userId && (
+                  <button
+                    onClick={() => deleteGame(game.id)}
+                    className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                  >
+                    🗑️ 삭제
+                  </button>
+                )}
               </div>
 
               {!game.started && isGameReady(game) && (
