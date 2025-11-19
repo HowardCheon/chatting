@@ -2,8 +2,8 @@
 
 export default function FirebaseError() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-red-50">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-red-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl p-8 max-w-3xl w-full">
         <div className="text-center mb-6">
           <div className="text-6xl mb-4">⚠️</div>
           <h1 className="text-3xl font-bold text-red-600 mb-2">
@@ -14,9 +14,28 @@ export default function FirebaseError() {
           </p>
         </div>
 
+        <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6 mb-6">
+          <h2 className="font-bold text-lg mb-3 text-yellow-900 flex items-center gap-2">
+            <span className="text-2xl">🔔</span>
+            이미 환경 변수를 설정하셨나요?
+          </h2>
+          <p className="text-yellow-800 mb-3">
+            Vercel에서 환경 변수를 추가한 후에는 <strong className="text-yellow-900">반드시 재배포</strong>가 필요합니다!
+          </p>
+          <div className="bg-white rounded p-4 text-sm">
+            <p className="font-semibold text-gray-900 mb-2">재배포 방법:</p>
+            <ol className="list-decimal list-inside space-y-1 text-gray-700">
+              <li>Vercel Dashboard → 프로젝트 선택</li>
+              <li><strong>Deployments</strong> 탭 클릭</li>
+              <li>최신 배포 옆 <strong>⋯</strong> (점 3개) 클릭</li>
+              <li><strong>Redeploy</strong> 클릭</li>
+            </ol>
+          </div>
+        </div>
+
         <div className="bg-gray-50 rounded-lg p-6 mb-6">
           <h2 className="font-bold text-lg mb-3 text-gray-900">
-            Vercel 환경 변수 설정 방법:
+            처음 설정하는 경우:
           </h2>
           <ol className="list-decimal list-inside space-y-2 text-gray-700">
             <li>
@@ -32,7 +51,7 @@ export default function FirebaseError() {
             </li>
             <li>프로젝트 선택</li>
             <li>Settings → Environment Variables 클릭</li>
-            <li>다음 환경 변수들을 추가:</li>
+            <li>다음 환경 변수들을 <strong>하나씩</strong> 추가:</li>
           </ol>
 
           <div className="mt-4 bg-gray-900 text-green-400 p-4 rounded font-mono text-sm overflow-x-auto">

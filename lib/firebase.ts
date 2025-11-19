@@ -1,30 +1,7 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getDatabase, Database } from 'firebase/database';
 
-// Validate required environment variables
-const requiredEnvVars = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_DATABASE_URL',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'NEXT_PUBLIC_FIREBASE_APP_ID',
-] as const;
-
-const missingVars = requiredEnvVars.filter(
-  (varName) => !process.env[varName]
-);
-
-if (missingVars.length > 0) {
-  console.error(
-    `Missing required Firebase environment variables: ${missingVars.join(', ')}`
-  );
-  console.error(
-    'Please set these in your Vercel project settings or .env.local file'
-  );
-}
-
+// Firebase configuration from environment variables
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -35,13 +12,36 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Check if all required config values are present
+const hasAllConfig = !!(
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.databaseURL &&
+  firebaseConfig.projectId &&
+  firebaseConfig.storageBucket &&
+  firebaseConfig.messagingSenderId &&
+  firebaseConfig.appId
+);
+
+// Debug logging (only in development)
+if (process.env.NODE_ENV === 'development' && !hasAllConfig) {
+  console.error('Firebase config is incomplete:');
+  Object.entries(firebaseConfig).forEach(([key, value]) => {
+    console.log(`${key}: ${value ? '✓' : '✗'}`);
+  });
+}
+
 // Initialize Firebase only if all config values are present
 let app: FirebaseApp | undefined;
 let database: Database | undefined;
 
-if (missingVars.length === 0) {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  database = getDatabase(app);
+if (hasAllConfig) {
+  try {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    database = getDatabase(app);
+  } catch (error) {
+    console.error('Failed to initialize Firebase:', error);
+  }
 }
 
-export { database };
+export { database, hasAllConfig };
