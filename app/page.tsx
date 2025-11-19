@@ -7,9 +7,14 @@ import NicknameInput from '@/components/NicknameInput';
 import Chat from '@/components/Chat';
 import ParticipantList from '@/components/ParticipantList';
 import LadderGame from '@/components/LadderGame';
+import FirebaseError from '@/components/FirebaseError';
 import type { Participant } from '@/types';
 
 export default function Home() {
+  // Check if Firebase is properly configured
+  if (!database) {
+    return <FirebaseError />;
+  }
   const [userId, setUserId] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
   const [participants, setParticipants] = useState<Participant[]>([]);
