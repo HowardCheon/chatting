@@ -148,7 +148,13 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
     });
   };
 
-  const deleteGame = async (gameId: string) => {
+  const deleteGame = async (gameId: string, game: LadderGame) => {
+    // 권한 체크
+    if (game.createdBy !== userId) {
+      alert('본인이 만든 게임만 삭제할 수 있습니다.');
+      return;
+    }
+
     if (!confirm('정말 이 게임을 삭제하시겠습니까?')) {
       return;
     }
@@ -244,14 +250,12 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
                 <div className="text-sm text-gray-600">
                   {game.creatorNickname}님의 게임
                 </div>
-                {game.createdBy === userId && (
-                  <button
-                    onClick={() => deleteGame(game.id)}
-                    className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                  >
-                    🗑️ 삭제
-                  </button>
-                )}
+                <button
+                  onClick={() => deleteGame(game.id, game)}
+                  className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                >
+                  🗑️ 삭제
+                </button>
               </div>
 
               {!game.started && isGameReady(game) && (
