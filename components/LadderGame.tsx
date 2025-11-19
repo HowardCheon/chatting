@@ -103,6 +103,7 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
       results,
       createdAt: Date.now(),
       selections: {},
+      nicknames: {},
       paths,
       bridges,
       started: false,
@@ -128,9 +129,10 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
       return;
     }
 
-    const gameRef = ref(db, `ladderGames/${gameId}/selections`);
+    const gameRef = ref(db, `ladderGames/${gameId}`);
     await update(gameRef, {
-      [position]: userId,
+      [`selections/${position}`]: userId,
+      [`nicknames/${position}`]: nickname,
     });
   };
 
@@ -223,6 +225,7 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
       <div className="space-y-4 max-h-[600px] overflow-y-auto">
         {games.map((game) => {
           const selections = game.selections || {};
+          const nicknames = game.nicknames || {};
           const myResult = getMyResult(game);
           const myPosition = Object.entries(selections).find(([_, id]) => id === userId)?.[0];
 
@@ -232,25 +235,31 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
                 {game.creatorNickname}님의 게임
               </div>
 
-              <div className="flex justify-around mb-2">
-                {Array.from({ length: game.participantCount }, (_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => selectPosition(game.id, i, game)}
-                    disabled={!!selections[i] || !!myPosition || game.started}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      selections[i]
-                        ? selections[i] === userId
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                        : myPosition || game.started
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    {selections[i] === userId ? '선택함' : selections[i] ? '선택됨' : `선택 ${i + 1}`}
-                  </button>
-                ))}
+              <div className="flex justify-around mb-2 gap-1">
+                {Array.from({ length: game.participantCount }, (_, i) => {
+                  const selectedNickname = nicknames[i];
+                  const isMySelection = selections[i] === userId;
+                  const isSelected = !!selections[i];
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => selectPosition(game.id, i, game)}
+                      disabled={isSelected || !!myPosition || game.started}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors min-w-[70px] ${
+                        isSelected
+                          ? isMySelection
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                          : myPosition || game.started
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                    >
+                      {selectedNickname || `선택 ${i + 1}`}
+                    </button>
+                  );
+                })}
               </div>
 
               {!game.started && isGameReady(game) && (
@@ -346,9 +355,9 @@ function LadderDisplay({ bridges, participantCount, results, myPosition, paths, 
 
           // 다음 참가자 애니메이션 시작
           currentIndex++;
-          setTimeout(animateNext, 300);
+          setTimeout(animateNext, 500);
         }
-      }, 200); // 각 스텝마다 200ms
+      }, 400); // 각 스텝마다 400ms (더 천천히)
     };
 
     // 첫 번째 참가자부터 시작
@@ -442,6 +451,9 @@ function LadderDisplay({ bridges, participantCount, results, myPosition, paths, 
               r={8}
               fill={isMyBall ? '#3b82f6' : '#10b981'}
               className={isCompleted ? '' : 'animate-pulse'}
+              style={{
+                transition: 'cx 0.4s ease-in-out, cy 0.4s ease-in-out',
+              }}
             >
               {!isCompleted && (
                 <animate
@@ -459,7 +471,11 @@ function LadderDisplay({ bridges, participantCount, results, myPosition, paths, 
               y={currentY + 1}
               textAnchor="middle"
               className="text-xs fill-white font-bold"
-              style={{ fontSize: '10px', pointerEvents: 'none' }}
+              style={{
+                fontSize: '10px',
+                pointerEvents: 'none',
+                transition: 'x 0.4s ease-in-out, y 0.4s ease-in-out',
+              }}
             >
               {position + 1}
             </text>
