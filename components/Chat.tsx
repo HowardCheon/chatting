@@ -1,22 +1,23 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { database } from '@/lib/firebase';
 import { ref, push, onValue, serverTimestamp, off } from 'firebase/database';
+import type { Database } from 'firebase/database';
 import type { Message } from '@/types';
 
 interface ChatProps {
   nickname: string;
   userId: string;
+  db: Database;
 }
 
-export default function Chat({ nickname, userId }: ChatProps) {
+export default function Chat({ nickname, userId, db }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const messagesRef = ref(database, 'messages');
+    const messagesRef = ref(db, 'messages');
 
     onValue(messagesRef, (snapshot) => {
       const data = snapshot.val();
@@ -43,7 +44,7 @@ export default function Chat({ nickname, userId }: ChatProps) {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    const messagesRef = ref(database, 'messages');
+    const messagesRef = ref(db, 'messages');
     await push(messagesRef, {
       nickname,
       text: newMessage,

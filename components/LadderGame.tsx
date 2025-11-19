@@ -1,23 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { database } from '@/lib/firebase';
 import { ref, push, onValue, update, off } from 'firebase/database';
+import type { Database } from 'firebase/database';
 import type { LadderGame } from '@/types';
 
 interface LadderGameProps {
   userId: string;
   nickname: string;
+  db: Database;
 }
 
-export default function LadderGame({ userId, nickname }: LadderGameProps) {
+export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
   const [games, setGames] = useState<LadderGame[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [participantCount, setParticipantCount] = useState(3);
   const [results, setResults] = useState<string[]>(['', '', '']);
 
   useEffect(() => {
-    const gamesRef = ref(database, 'ladderGames');
+    const gamesRef = ref(db, 'ladderGames');
 
     onValue(gamesRef, (snapshot) => {
       const data = snapshot.val();
@@ -94,7 +95,7 @@ export default function LadderGame({ userId, nickname }: LadderGameProps) {
     const bridges = generateLadder(participantCount);
     const paths = calculatePaths(bridges, participantCount);
 
-    const gamesRef = ref(database, 'ladderGames');
+    const gamesRef = ref(db, 'ladderGames');
     await push(gamesRef, {
       createdBy: userId,
       creatorNickname: nickname,
@@ -124,7 +125,7 @@ export default function LadderGame({ userId, nickname }: LadderGameProps) {
       return;
     }
 
-    const gameRef = ref(database, `ladderGames/${gameId}/selections`);
+    const gameRef = ref(db, `ladderGames/${gameId}/selections`);
     await update(gameRef, {
       [position]: userId,
     });

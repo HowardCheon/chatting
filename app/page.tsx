@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { database } from '@/lib/firebase';
 import { ref, onValue, set, serverTimestamp, remove, off } from 'firebase/database';
+import type { Database } from 'firebase/database';
 import NicknameInput from '@/components/NicknameInput';
 import Chat from '@/components/Chat';
 import ParticipantList from '@/components/ParticipantList';
@@ -10,11 +11,7 @@ import LadderGame from '@/components/LadderGame';
 import FirebaseError from '@/components/FirebaseError';
 import type { Participant } from '@/types';
 
-export default function Home() {
-  // Check if Firebase is properly configured
-  if (!database) {
-    return <FirebaseError />;
-  }
+function ChatApp({ db }: { db: Database }) {
   const [userId, setUserId] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -40,7 +37,7 @@ export default function Home() {
   useEffect(() => {
     if (!userId) return;
 
-    const participantsRef = ref(database, 'participants');
+    const participantsRef = ref(db, 'participants');
 
     onValue(participantsRef, (snapshot) => {
       const data = snapshot.val();
@@ -68,7 +65,7 @@ export default function Home() {
     if (!userId || !nickname) return;
 
     const updatePresence = () => {
-      const participantRef = ref(database, `participants/${userId}`);
+      const participantRef = ref(db, `participants/${userId}`);
       set(participantRef, {
         nickname,
         joinedAt: Date.now(),
@@ -80,7 +77,7 @@ export default function Home() {
     const interval = setInterval(updatePresence, 10000); // 10초마다 업데이트
 
     const handleBeforeUnload = () => {
-      const participantRef = ref(database, `participants/${userId}`);
+      const participantRef = ref(db, `participants/${userId}`);
       remove(participantRef);
     };
 
@@ -89,21 +86,21 @@ export default function Home() {
     return () => {
       clearInterval(interval);
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      const participantRef = ref(database, `participants/${userId}`);
+      const participantRef = ref(db, `participants/${userId}`);
       remove(participantRef);
     };
   }, [userId, nickname]);
 
   const joinChat = (uid: string, nick: string) => {
-    const participantRef = ref(database, `participants/${uid}`);
+    const participantRef = ref(db, `participants/${uid}`);
     set(participantRef, {
       nickname: nick,
       joinedAt: Date.now(),
       lastSeen: serverTimestamp(),
     });
 
-    const messagesRef = ref(database, 'messages');
-    const messageRef = ref(database, `messages/${Date.now()}`);
+    const messagesRef = ref(db, 'messages');
+    const messageRef = ref(db, `messages/${Date.now()}`);
     set(messageRef, {
       nickname: '시스템',
       text: `${nick}님이 입장하셨습니다.`,
@@ -127,8 +124,8 @@ export default function Home() {
       setNickname(trimmedNick);
       localStorage.setItem('nickname', trimmedNick);
 
-      const messagesRef = ref(database, 'messages');
-      const messageRef = ref(database, `messages/${Date.now()}`);
+      const messagesRef = ref(db, 'messages');
+      const messageRef = ref(db, `messages/${Date.now()}`);
       set(messageRef, {
         nickname: '시스템',
         text: `${nickname}님이 ${trimmedNick}(으)로 닉네임을 변경하셨습니다.`,
@@ -190,10 +187,10 @@ export default function Home() {
             <div className="bg-white rounded-lg shadow-lg h-[calc(100vh-200px)]">
               {showLadder ? (
                 <div className="h-full overflow-y-auto">
-                  <LadderGame userId={userId} nickname={nickname} />
+                  <LadderGame userId={userId} nickname={nickname} db={db} />
                 </div>
               ) : (
-                <Chat nickname={nickname} userId={userId} />
+                <Chat nickname={nickname} userId={userId} db={db} />
               )}
             </div>
           </div>
@@ -205,4 +202,13 @@ export default function Home() {
       </div>
     </div>
   );
+}
+
+export default function Home() {
+  // Check if Firebase is properly configured
+  if (!database) {
+    return <FirebaseError />;
+  }
+
+  return <ChatApp db={database} />;
 }
