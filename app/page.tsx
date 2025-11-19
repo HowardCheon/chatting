@@ -7,7 +7,7 @@ import NicknameInput from '@/components/NicknameInput';
 import Chat from '@/components/Chat';
 import ParticipantList from '@/components/ParticipantList';
 import LadderGame from '@/components/LadderGame';
-import { Participant } from '@/types';
+import type { Participant } from '@/types';
 
 export default function Home() {
   const [userId, setUserId] = useState<string>('');

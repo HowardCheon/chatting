@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { database } from '@/lib/firebase';
 import { ref, push, onValue, serverTimestamp, off } from 'firebase/database';
-import { Message } from '@/types';
+import type { Message } from '@/types';
 
 interface ChatProps {
   nickname: string;

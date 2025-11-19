@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { database } from '@/lib/firebase';
 import { ref, push, onValue, update, off } from 'firebase/database';
-import { LadderGame } from '@/types';
+import type { LadderGame } from '@/types';
 
 interface LadderGameProps {
   userId: string;

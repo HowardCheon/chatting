@@ -1,6 +1,6 @@
 'use client';
 
-import { Participant } from '@/types';
+import type { Participant } from '@/types';
 
 interface ParticipantListProps {
   participants: Participant[];
