@@ -235,33 +235,6 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
                 {game.creatorNickname}님의 게임
               </div>
 
-              <div className="flex justify-around mb-2 gap-1">
-                {Array.from({ length: game.participantCount }, (_, i) => {
-                  const selectedNickname = nicknames[i];
-                  const isMySelection = selections[i] === userId;
-                  const isSelected = !!selections[i];
-
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => selectPosition(game.id, i, game)}
-                      disabled={isSelected || !!myPosition || game.started}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors min-w-[70px] ${
-                        isSelected
-                          ? isMySelection
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                          : myPosition || game.started
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-green-600 text-white hover:bg-green-700'
-                      }`}
-                    >
-                      {selectedNickname || `선택 ${i + 1}`}
-                    </button>
-                  );
-                })}
-              </div>
-
               {!game.started && isGameReady(game) && (
                 <div className="flex justify-center mb-3">
                   <button
@@ -287,6 +260,9 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
                 paths={game.paths}
                 started={game.started || false}
                 selections={selections}
+                nicknames={nicknames}
+                userId={userId}
+                onSelectPosition={(position) => selectPosition(game.id, position, game)}
               />
 
               {myResult && (
@@ -310,16 +286,30 @@ interface LadderDisplayProps {
   paths: number[][];
   started: boolean;
   selections: { [key: number]: string };
+  nicknames: { [key: number]: string };
+  userId: string;
+  onSelectPosition: (position: number) => void;
 }
 
-function LadderDisplay({ bridges, participantCount, results, myPosition, paths, started, selections }: LadderDisplayProps) {
+function LadderDisplay({
+  bridges,
+  participantCount,
+  results,
+  myPosition,
+  paths,
+  started,
+  selections,
+  nicknames,
+  userId,
+  onSelectPosition
+}: LadderDisplayProps) {
   const [animatingPositions, setAnimatingPositions] = useState<number[]>([]);
   const [currentSteps, setCurrentSteps] = useState<{ [key: number]: number }>({});
   const [completedPositions, setCompletedPositions] = useState<number[]>([]);
 
   const rows = bridges.length;
   const width = participantCount * 80;
-  const height = rows * 40 + 80;
+  const height = rows * 40 + 100; // 선택 버튼 공간 추가
 
   useEffect(() => {
     if (!started) {
@@ -364,6 +354,8 @@ function LadderDisplay({ bridges, participantCount, results, myPosition, paths, 
     animateNext();
   }, [started, selections, paths]);
 
+  const ladderStartY = 60; // 선택 버튼 아래에서 시작
+
   const getAnimatedPosition = (position: number) => {
     const step = currentSteps[position] || 0;
     const path = paths[position];
@@ -373,40 +365,96 @@ function LadderDisplay({ bridges, participantCount, results, myPosition, paths, 
 
   const getAnimatedY = (position: number) => {
     const step = currentSteps[position] || 0;
-    return 20 + step * 40;
+    return ladderStartY + step * 40;
   };
 
   return (
-    <svg width={width} height={height} className="mx-auto">
-      {/* 세로 선 */}
-      {Array.from({ length: participantCount }, (_, i) => (
-        <line
-          key={`vertical-${i}`}
-          x1={40 + i * 80}
-          y1={20}
-          x2={40 + i * 80}
-          y2={height - 40}
-          stroke="#999"
-          strokeWidth={2}
-        />
-      ))}
+    <div className="relative">
+      {/* 선택 버튼들 */}
+      <div className="flex justify-center mb-2">
+        <div className="flex gap-1" style={{ width: `${width}px` }}>
+          {Array.from({ length: participantCount }, (_, i) => {
+            const selectedNickname = nicknames[i];
+            const isMySelection = selections[i] === userId;
+            const isSelected = !!selections[i];
+            const hasMyPosition = myPosition !== null;
 
-      {/* 다리 (가로 선) */}
-      {bridges.map((row, rowIdx) =>
-        row.map((hasBridge, colIdx) =>
-          hasBridge ? (
-            <line
-              key={`bridge-${rowIdx}-${colIdx}`}
-              x1={40 + colIdx * 80}
-              y1={20 + (rowIdx + 0.5) * 40}
-              x2={40 + (colIdx + 1) * 80}
-              y2={20 + (rowIdx + 0.5) * 40}
-              stroke="#999"
-              strokeWidth={2}
-            />
-          ) : null
-        )
-      )}
+            return (
+              <div key={i} className="flex-1 flex justify-center">
+                <button
+                  onClick={() => !isSelected && !hasMyPosition && !started && onSelectPosition(i)}
+                  disabled={isSelected || hasMyPosition || started}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors min-w-[70px] ${
+                    isSelected
+                      ? isMySelection
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                      : hasMyPosition || started
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                >
+                  {selectedNickname || `선택 ${i + 1}`}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <svg width={width} height={height} className="mx-auto">
+        {/* 세로 선 */}
+        {Array.from({ length: participantCount }, (_, i) => (
+          <line
+            key={`vertical-${i}`}
+            x1={40 + i * 80}
+            y1={ladderStartY}
+            x2={40 + i * 80}
+            y2={height - 40}
+            stroke="#999"
+            strokeWidth={2}
+          />
+        ))}
+
+        {/* 다리 (가로 선) */}
+        {bridges.map((row, rowIdx) =>
+          row.map((hasBridge, colIdx) =>
+            hasBridge ? (
+              <line
+                key={`bridge-${rowIdx}-${colIdx}`}
+                x1={40 + colIdx * 80}
+                y1={ladderStartY + (rowIdx + 0.5) * 40}
+                x2={40 + (colIdx + 1) * 80}
+                y2={ladderStartY + (rowIdx + 0.5) * 40}
+                stroke="#999"
+                strokeWidth={2}
+              />
+            ) : null
+          )
+        )}
+
+        {/* 시작 전 사다리 중간 가리기 */}
+        {!started && (
+          <rect
+            x="0"
+            y={ladderStartY + 20}
+            width={width}
+            height={height - ladderStartY - 60}
+            fill="rgba(0, 0, 0, 0.7)"
+            className="backdrop-blur-sm"
+          />
+        )}
+        {!started && (
+          <text
+            x={width / 2}
+            y={height / 2}
+            textAnchor="middle"
+            className="fill-white text-2xl font-bold"
+            style={{ fontSize: '24px' }}
+          >
+            🎮 시작 버튼을 눌러주세요
+          </text>
+        )}
 
       {/* 결과 */}
       {results.map((result, i) => (
@@ -435,7 +483,7 @@ function LadderDisplay({ bridges, participantCount, results, myPosition, paths, 
               <polyline
                 points={paths[position]
                   .slice(0, (currentSteps[position] || 0) + 1)
-                  .map((pos, idx) => `${40 + pos * 80},${20 + idx * 40}`)
+                  .map((pos, idx) => `${40 + pos * 80},${ladderStartY + idx * 40}`)
                   .join(' ')}
                 fill="none"
                 stroke={isMyBall ? '#3b82f6' : '#10b981'}
@@ -483,5 +531,6 @@ function LadderDisplay({ bridges, participantCount, results, myPosition, paths, 
         );
       })}
     </svg>
+    </div>
   );
 }
