@@ -113,13 +113,15 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
   };
 
   const selectPosition = async (gameId: string, position: number, game: LadderGame) => {
-    if (game.selections[position]) {
+    const selections = game.selections || {};
+
+    if (selections[position]) {
       alert('이미 선택된 위치입니다!');
       return;
     }
 
     // 이미 다른 위치를 선택했는지 확인
-    const mySelection = Object.entries(game.selections).find(([_, id]) => id === userId);
+    const mySelection = Object.entries(selections).find(([_, id]) => id === userId);
     if (mySelection) {
       alert('이미 선택하셨습니다!');
       return;
@@ -137,7 +139,8 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
   };
 
   const getMyResult = (game: LadderGame) => {
-    const myPosition = Object.entries(game.selections).find(([_, id]) => id === userId)?.[0];
+    const selections = game.selections || {};
+    const myPosition = Object.entries(selections).find(([_, id]) => id === userId)?.[0];
     if (!myPosition) return null;
 
     const path = game.paths[parseInt(myPosition)];
@@ -205,8 +208,9 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
 
       <div className="space-y-4 max-h-[600px] overflow-y-auto">
         {games.map((game) => {
+          const selections = game.selections || {};
           const myResult = getMyResult(game);
-          const myPosition = Object.entries(game.selections).find(([_, id]) => id === userId)?.[0];
+          const myPosition = Object.entries(selections).find(([_, id]) => id === userId)?.[0];
 
           return (
             <div key={game.id} className="border border-gray-200 rounded-lg p-4">
@@ -219,10 +223,10 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
                   <button
                     key={i}
                     onClick={() => selectPosition(game.id, i, game)}
-                    disabled={!!game.selections[i] || !!myPosition}
+                    disabled={!!selections[i] || !!myPosition}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      game.selections[i]
-                        ? game.selections[i] === userId
+                      selections[i]
+                        ? selections[i] === userId
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                         : myPosition
@@ -230,7 +234,7 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
                         : 'bg-green-600 text-white hover:bg-green-700'
                     }`}
                   >
-                    {game.selections[i] === userId ? '선택함' : game.selections[i] ? '선택됨' : `선택 ${i + 1}`}
+                    {selections[i] === userId ? '선택함' : selections[i] ? '선택됨' : `선택 ${i + 1}`}
                   </button>
                 ))}
               </div>
