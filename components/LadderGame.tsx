@@ -105,6 +105,7 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
       selections: {},
       paths,
       bridges,
+      started: false,
     });
 
     setShowCreateForm(false);
@@ -138,7 +139,20 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
     setResults(Array(count).fill('').map((_, i) => results[i] || ''));
   };
 
+  const startGame = async (gameId: string) => {
+    const gameRef = ref(db, `ladderGames/${gameId}`);
+    await update(gameRef, {
+      started: true,
+    });
+  };
+
+  const isGameReady = (game: LadderGame) => {
+    const selections = game.selections || {};
+    return Object.keys(selections).length === game.participantCount;
+  };
+
   const getMyResult = (game: LadderGame) => {
+    if (!game.started) return null;
     const selections = game.selections || {};
     const myPosition = Object.entries(selections).find(([_, id]) => id === userId)?.[0];
     if (!myPosition) return null;
@@ -223,13 +237,13 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
                   <button
                     key={i}
                     onClick={() => selectPosition(game.id, i, game)}
-                    disabled={!!selections[i] || !!myPosition}
+                    disabled={!!selections[i] || !!myPosition || game.started}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       selections[i]
                         ? selections[i] === userId
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                        : myPosition
+                        : myPosition || game.started
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : 'bg-green-600 text-white hover:bg-green-700'
                     }`}
@@ -239,12 +253,31 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
                 ))}
               </div>
 
+              {!game.started && isGameReady(game) && (
+                <div className="flex justify-center mb-3">
+                  <button
+                    onClick={() => startGame(game.id)}
+                    className="px-8 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-bold text-lg"
+                  >
+                    🎮 시작!
+                  </button>
+                </div>
+              )}
+
+              {!game.started && !isGameReady(game) && (
+                <div className="text-center mb-3 text-sm text-gray-500">
+                  모든 참여자가 선택하면 시작할 수 있습니다.
+                </div>
+              )}
+
               <LadderDisplay
                 bridges={game.bridges}
                 participantCount={game.participantCount}
                 results={game.results}
                 myPosition={myPosition ? parseInt(myPosition) : null}
                 paths={game.paths}
+                started={game.started || false}
+                selections={selections}
               />
 
               {myResult && (
@@ -266,12 +299,73 @@ interface LadderDisplayProps {
   results: string[];
   myPosition: number | null;
   paths: number[][];
+  started: boolean;
+  selections: { [key: number]: string };
 }
 
-function LadderDisplay({ bridges, participantCount, results, myPosition, paths }: LadderDisplayProps) {
+function LadderDisplay({ bridges, participantCount, results, myPosition, paths, started, selections }: LadderDisplayProps) {
+  const [animatingPositions, setAnimatingPositions] = useState<number[]>([]);
+  const [currentSteps, setCurrentSteps] = useState<{ [key: number]: number }>({});
+  const [completedPositions, setCompletedPositions] = useState<number[]>([]);
+
   const rows = bridges.length;
   const width = participantCount * 80;
   const height = rows * 40 + 80;
+
+  useEffect(() => {
+    if (!started) {
+      setAnimatingPositions([]);
+      setCurrentSteps({});
+      setCompletedPositions([]);
+      return;
+    }
+
+    // 선택된 위치들을 순서대로 가져오기
+    const selectedPositions = Object.keys(selections)
+      .map(Number)
+      .sort((a, b) => a - b);
+
+    let currentIndex = 0;
+
+    const animateNext = () => {
+      if (currentIndex >= selectedPositions.length) return;
+
+      const position = selectedPositions[currentIndex];
+      const path = paths[position];
+
+      setAnimatingPositions(prev => [...prev, position]);
+
+      let step = 0;
+      const animationInterval = setInterval(() => {
+        step++;
+        setCurrentSteps(prev => ({ ...prev, [position]: step }));
+
+        if (step >= path.length - 1) {
+          clearInterval(animationInterval);
+          setCompletedPositions(prev => [...prev, position]);
+
+          // 다음 참가자 애니메이션 시작
+          currentIndex++;
+          setTimeout(animateNext, 300);
+        }
+      }, 200); // 각 스텝마다 200ms
+    };
+
+    // 첫 번째 참가자부터 시작
+    animateNext();
+  }, [started, selections, paths]);
+
+  const getAnimatedPosition = (position: number) => {
+    const step = currentSteps[position] || 0;
+    const path = paths[position];
+    if (step >= path.length) return path[path.length - 1];
+    return path[step];
+  };
+
+  const getAnimatedY = (position: number) => {
+    const step = currentSteps[position] || 0;
+    return 20 + step * 40;
+  };
 
   return (
     <svg width={width} height={height} className="mx-auto">
@@ -283,8 +377,8 @@ function LadderDisplay({ bridges, participantCount, results, myPosition, paths }
           y1={20}
           x2={40 + i * 80}
           y2={height - 40}
-          stroke={myPosition === i ? '#3b82f6' : '#666'}
-          strokeWidth={myPosition === i ? 3 : 2}
+          stroke="#999"
+          strokeWidth={2}
         />
       ))}
 
@@ -298,7 +392,7 @@ function LadderDisplay({ bridges, participantCount, results, myPosition, paths }
               y1={20 + (rowIdx + 0.5) * 40}
               x2={40 + (colIdx + 1) * 80}
               y2={20 + (rowIdx + 0.5) * 40}
-              stroke="#666"
+              stroke="#999"
               strokeWidth={2}
             />
           ) : null
@@ -306,32 +400,72 @@ function LadderDisplay({ bridges, participantCount, results, myPosition, paths }
       )}
 
       {/* 결과 */}
-      {results.map((result, i) => {
-        const isMyResult = myPosition !== null && paths[myPosition][paths[myPosition].length - 1] === i;
+      {results.map((result, i) => (
+        <text
+          key={`result-${i}`}
+          x={40 + i * 80}
+          y={height - 15}
+          textAnchor="middle"
+          className="text-sm fill-gray-700"
+        >
+          {result}
+        </text>
+      ))}
+
+      {/* 애니메이션 중인 볼 */}
+      {animatingPositions.map((position) => {
+        const currentX = 40 + getAnimatedPosition(position) * 80;
+        const currentY = getAnimatedY(position);
+        const isCompleted = completedPositions.includes(position);
+        const isMyBall = position === myPosition;
+
         return (
-          <text
-            key={`result-${i}`}
-            x={40 + i * 80}
-            y={height - 15}
-            textAnchor="middle"
-            className={`text-sm ${isMyResult ? 'font-bold fill-blue-600' : 'fill-gray-700'}`}
-          >
-            {result}
-          </text>
+          <g key={`ball-${position}`}>
+            {/* 지나온 경로 표시 */}
+            {started && currentSteps[position] > 0 && (
+              <polyline
+                points={paths[position]
+                  .slice(0, (currentSteps[position] || 0) + 1)
+                  .map((pos, idx) => `${40 + pos * 80},${20 + idx * 40}`)
+                  .join(' ')}
+                fill="none"
+                stroke={isMyBall ? '#3b82f6' : '#10b981'}
+                strokeWidth={3}
+                strokeOpacity={0.5}
+              />
+            )}
+
+            {/* 움직이는 볼 */}
+            <circle
+              cx={currentX}
+              cy={currentY}
+              r={8}
+              fill={isMyBall ? '#3b82f6' : '#10b981'}
+              className={isCompleted ? '' : 'animate-pulse'}
+            >
+              {!isCompleted && (
+                <animate
+                  attributeName="r"
+                  values="8;10;8"
+                  dur="0.6s"
+                  repeatCount="indefinite"
+                />
+              )}
+            </circle>
+
+            {/* 번호 표시 */}
+            <text
+              x={currentX}
+              y={currentY + 1}
+              textAnchor="middle"
+              className="text-xs fill-white font-bold"
+              style={{ fontSize: '10px', pointerEvents: 'none' }}
+            >
+              {position + 1}
+            </text>
+          </g>
         );
       })}
-
-      {/* 경로 표시 (내가 선택한 경우) */}
-      {myPosition !== null && (
-        <polyline
-          points={paths[myPosition].map((pos, idx) => `${40 + pos * 80},${20 + idx * 40}`).join(' ')}
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth={3}
-          strokeOpacity={0.3}
-          className="ladder-path"
-        />
-      )}
     </svg>
   );
 }
