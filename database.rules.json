@@ -1,0 +1,19 @@
+{
+  "rules": {
+    "messages": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["timestamp"]
+    },
+    "participants": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["lastSeen"]
+    },
+    "ladderGames": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["createdAt"]
+    }
+  }
+}
