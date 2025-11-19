@@ -188,7 +188,7 @@ export default function LadderGame({ userId, nickname, db }: LadderGameProps) {
               onChange={(e) => handleParticipantCountChange(parseInt(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
             >
-              {[2, 3, 4, 5, 6].map(num => (
+              {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                 <option key={num} value={num}>{num}명</option>
               ))}
             </select>
@@ -356,6 +356,24 @@ function LadderDisplay({
 
   const ladderStartY = 60; // 선택 버튼 아래에서 시작
 
+  // 참여자별 색상 배열 (10가지 색상)
+  const colors = [
+    '#ef4444', // red-500
+    '#3b82f6', // blue-500
+    '#10b981', // green-500
+    '#f59e0b', // amber-500
+    '#8b5cf6', // violet-500
+    '#ec4899', // pink-500
+    '#14b8a6', // teal-500
+    '#f97316', // orange-500
+    '#06b6d4', // cyan-500
+    '#a855f7', // purple-500
+  ];
+
+  const getColor = (position: number) => {
+    return colors[position % colors.length];
+  };
+
   const getAnimatedPosition = (position: number) => {
     const step = currentSteps[position] || 0;
     const path = paths[position];
@@ -440,8 +458,7 @@ function LadderDisplay({
             y={ladderStartY + 20}
             width={width}
             height={height - ladderStartY - 60}
-            fill="rgba(0, 0, 0, 0.7)"
-            className="backdrop-blur-sm"
+            fill="#1f2937"
           />
         )}
         {!started && (
@@ -474,7 +491,7 @@ function LadderDisplay({
         const currentX = 40 + getAnimatedPosition(position) * 80;
         const currentY = getAnimatedY(position);
         const isCompleted = completedPositions.includes(position);
-        const isMyBall = position === myPosition;
+        const color = getColor(position);
 
         return (
           <g key={`ball-${position}`}>
@@ -486,7 +503,7 @@ function LadderDisplay({
                   .map((pos, idx) => `${40 + pos * 80},${ladderStartY + idx * 40}`)
                   .join(' ')}
                 fill="none"
-                stroke={isMyBall ? '#3b82f6' : '#10b981'}
+                stroke={color}
                 strokeWidth={3}
                 strokeOpacity={0.5}
               />
@@ -497,7 +514,7 @@ function LadderDisplay({
               cx={currentX}
               cy={currentY}
               r={8}
-              fill={isMyBall ? '#3b82f6' : '#10b981'}
+              fill={color}
               className={isCompleted ? '' : 'animate-pulse'}
               style={{
                 transition: 'cx 0.4s ease-in-out, cy 0.4s ease-in-out',
